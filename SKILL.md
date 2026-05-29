@@ -4,7 +4,7 @@ description: >
   IMMEDIATELY activate when user mentions CXI updates, summaries, or newsletters for any audience.
   This skill has TWO profiles - always determine which one before proceeding:
   (1) exec biweekly - triggered by "exec biweekly", "leadership update", or "exec summary"
-  (2) weekly support - triggered by "weekly support", "support team update", or "weekly summary"
+  (2) weekly support / TSE update - the weekly Friday CXI Team Updates email - triggered by "weekly support", "support team update", "weekly summary", "TSE summary", "TSE update", or "CXI Team Updates"
   If invoked via /cxi-exec-summary-skill or ambiguously, ASK the user which profile before proceeding.
   Automatically aggregates context from Google Docs, JIRA, meetings, Gmail, and Slack.
 triggers:
@@ -14,8 +14,11 @@ triggers:
   - CXI weekly support
   - CXI support team update
   - CXI weekly summary
+  - CXI TSE summary
+  - CXI TSE update
+  - CXI Team Updates
   - CXI update
-version: 1.2.0
+version: 1.3.0
 author: Kevin Baron-Quijano <kevin.baron@databricks.com>
 ---
 
@@ -33,14 +36,15 @@ Generates audience-appropriate updates by aggregating from the same core sources
 
 **Two profiles (see `config.yaml` for full configuration):**
 
-| | Exec Biweekly | Weekly Support |
+| | Exec Biweekly | Weekly Support / TSE Update |
 |---|---|---|
-| **Audience** | VP Support, COO, SVP Eng | Directors, TSE Managers, Shift Leads, Tech Leads, TSEs |
-| **Cadence** | Biweekly | Weekly |
+| **Audience** | VP Support, COO, SVP Eng | All Support Engineering (TSEs, Tech Leads, Shift Leads, TSE Managers, Directors; plus IM/EM and Field Eng) |
+| **Cadence** | Biweekly | Weekly (Fridays) |
 | **Lens** | Outcomes, trends, asks | What's new, how to try it, where to ask |
-| **Template** | `biweekly-template.md` | `weekly-support-template.md` |
+| **Medium** | Google Doc | Email (Gmail draft), subject "CXI Team Updates" + companion Slack tease |
+| **Template** | `biweekly-template.md` | `tse-update-email-template.md` |
 | **Trigger** | "build CXI exec biweekly" | "build CXI weekly support" |
-| **Alt triggers** | "leadership update", "exec summary" | "support team update", "weekly summary" |
+| **Alt triggers** | "leadership update", "exec summary" | "support team update", "weekly summary", "TSE summary", "TSE update", "CXI Team Updates" |
 
 **Output:** Formatted Google Doc ready for review.
 
@@ -51,7 +55,7 @@ Generates audience-appropriate updates by aggregating from the same core sources
 | User says | Profile |
 |---|---|
 | "exec biweekly", "leadership update", "exec summary", "biweekly" | `exec_biweekly` |
-| "weekly support", "support team update", "weekly summary" | `weekly_support` |
+| "weekly support", "support team update", "weekly summary", "TSE summary", "TSE update", "CXI Team Updates" | `weekly_support` |
 | `/cxi-exec-summary-skill` (bare invocation) | **ASK** |
 | "CXI update" (ambiguous) | **ASK** |
 | "build both" | Run both profiles sequentially |
@@ -96,6 +100,18 @@ These rules apply to ALL generated content in the Google Doc:
    - Map each Roadmap Objective to its JIRA Epic (product area) using `roadmap_to_epic_mapping` in config.yaml
    - Group JIRA tickets by Epic, then report progress under the corresponding Roadmap Objective
 
+### Phase 0.5: Read Planned Inclusions
+**Goal:** Pick up manually-staged content items that should be folded into this run alongside the live data sources.
+
+1. Read `planned-inclusions.md` at the skill root.
+2. Under the `## Active` section, find every item whose `Profile:` matches the current run's profile AND whose `Target run:` date falls within the current run window (the upcoming run's target date, plus or minus 3 days).
+3. Treat each matching item's `Content:` bullets as additional Phase 1 input that MUST be reflected in the output draft. Place each bullet in the section(s) listed under `Suggested sections:`; if the suggested section is missing from the template, fall back to the closest semantically equivalent section.
+4. Linked JIRA keys called out in a planned inclusion are guaranteed-relevant - include them in any JIRA-derived sections (Highlights, Roadmap status) even if they would not have otherwise surfaced.
+5. After the run is published successfully, move each consumed item from `## Active` to `## Consumed`, adding a `Consumed:` line with the run date and the published doc link. Do NOT auto-delete consumed items; the audit trail matters.
+6. Items under `## Watch` are NOT in scope for the current run. Leave them alone unless their promotion criteria are clearly met, in which case surface them to Kevin for explicit promotion before including.
+
+**Note:** the weekly Friday TSE update and the Non-Senior Leader Summary are the same artifact, served by the single `weekly_support` profile (the CXI Team Updates email). Planned-inclusion items targeting the TSE update use `Profile: weekly_support` and are consumed by this profile on its Friday run.
+
 ### Phase 1: Context Aggregation
 **Goal:** Gather raw updates from all sources
 
@@ -122,6 +138,7 @@ These rules apply to ALL generated content in the Google Doc:
    - Use: `mcp__slack__slack_read_api_call` with endpoint `search.messages`
    - Strategy: Keyword-based search ("CXI", "support automation", "Isaac") across all channels, supplemented by `conversations.history` on configured channels
    - Channels: `#support-automation`, `#support-agent-internal`, `#eng-support-automation`, `#allhands-support`
+   - Announcement pull: Also include any messages Kevin (kevin.baron@databricks.com) sent in `#eng-support-automation` that begin with `:announcement:`. These are guaranteed-relevant and must be reflected in the output draft. Search with `search.messages` using `from:@kevin.baron in:#eng-support-automation` and keep only messages whose text starts with the literal `:announcement:` token
    - Filter: Prioritize message content and relevance over reactions. Emoji reactions are a supplementary signal only; do not use them as a primary filter for inclusion
 
 **Output:** Aggregated data structured by source
@@ -137,12 +154,13 @@ These rules apply to ALL generated content in the Google Doc:
 3. **Style:** See `references/domain-context.md` - "Executive Summary Writing Style Guidance"
 4. **Lens:** Outcomes, trends, strategic progress, cross-functional asks
 
-#### If profile = weekly support:
-1. **Apply Template:** `assets/templates/weekly-support-template.md`
-2. **Sections:** What's New, How to Try It, Known Limitations, Questions / Feedback
-3. **Style:** See `references/domain-context.md` - "Weekly Support Update Writing Style Guidance"
-4. **Lens:** What changed in workflows, how to use it, where to ask questions
-5. **Data filtering:** From the same Phase 1 data, extract only items that have a practitioner-facing impact - skip internal architecture changes, roadmap strategy, or leadership asks
+#### If profile = weekly support / TSE update:
+1. **Apply Template:** `assets/templates/tse-update-email-template.md`
+2. **Medium:** Email (Gmail draft), subject "CXI Team Updates"; To/CC from `config.yaml` `weekly_support.email`. Plus a companion Slack tease in `#eng-support-automation`.
+3. **Sections (5/9 scaffolding around the 7-point spine):** Salutation; Opening + "Bookmark go/cxi."; TL;DR; User feedback we are prioritizing (Aha, Enablement: Champions/Workshops, Support Agent feedback); What we shipped + how to try it; Recognizing Power Users (Reviewers, Champions, Demo'ers; fold in hackathon recognition when relevant); Welcoming new users (IM/EM, Field Eng); Best Practices (go/cxi Page: links); Upcoming bootcamps; What's next; Getting help; closing
+4. **Style:** See `references/domain-context.md` - "Weekly Support Update Writing Style Guidance"; plus the conventions in the `reference_tse_update_format` memory (subject line, "go/cxi, Page: <title>" link style)
+5. **Lens:** What changed in workflows, how to use it, where to ask questions
+6. **Data filtering:** From the same Phase 1 data, extract only items with a practitioner-facing impact - skip internal architecture changes, roadmap strategy, or leadership asks. Exclude Merlin and SupportBricks from "What's next"
 
 **Shared best practices (both profiles):**
 - Follow Output Formatting Rules (see above)
@@ -152,39 +170,36 @@ These rules apply to ALL generated content in the Google Doc:
 - All headers: Heading 2, Arial, 16px, Bold
 - No dividers between sections
 
-**Format for Medium:**
-- **Google Doc (RECOMMENDED):** Use template-based approach
+**Format for Medium (by profile):**
+- **exec biweekly -> Google Doc:** Use template-based approach
   1. Copy pre-formatted template: `mcp__google__drive_file_copy` (use `template_id` from the active profile in config.yaml)
   2. Replace content: `mcp__google__docs_document_batch_update` with `replaceAllText` requests
   3. IMPORTANT: Use plain text only - NO HTML tags (they render as literal text)
-- **Email:** Use `mcp__google__gmail_message_send`
+- **weekly support / TSE update -> Email (Gmail DRAFT):** Build the body from `tse-update-email-template.md`, then create a Gmail draft with `mcp__google__gmail_draft_create` using subject, To, and CC from `config.yaml` `weekly_support.email`. Do NOT send; leave it as a draft for Kevin to review and send. Then draft the companion Slack tease for `#eng-support-automation` (single `*` bold, no LLM footer).
 
 **Output:** Structured draft with all sections populated
 
 ### Phase 3: Review and Delivery
 **Goal:** Finalize and distribute
 
+#### If profile = exec biweekly (Google Doc)
 1. **Generate Draft Using Template**
    - Copy template: `mcp__google__drive_file_copy` with `template_id` from the active profile in config.yaml
    - Update title: Use `replaceAllText` to set date/week
    - Replace content sections: Use multiple `replaceAllText` requests (NO HTML tags!)
    - All formatting (headers, tables, etc.) is preserved from template
 
-   **CRITICAL:** Never use HTML tags like `<b>`, `<table>`, etc. in `replaceAllText`
-   - They render as literal text, not formatting
-   - Template already has all formatting - just replace text content
+   **CRITICAL:** Never use HTML tags like `<b>`, `<table>`, etc. in `replaceAllText` - they render as literal text. Template already has all formatting; just replace text content.
 
-2. **Tag Reviewers**
-   - Add reviewers using `mcp__google__drive_comment_create` or sharing permissions
-   - Primary: kevin.baron@databricks.com (from `config.yaml`)
-   - Secondary: samira.emmerson@databricks.com
+2. **Tag Reviewers** - Primary: kevin.baron@databricks.com; Secondary: samira.emmerson@databricks.com (from `config.yaml`)
+3. **Send Notification** - Post to Slack `chat.postMessage` to the profile's `slack_notification_channel`; Format: "{profile_name} draft ready for review: {LINK}"
 
-3. **Send Notification**
-   - Post to Slack using `mcp__slack__slack_write_api_call` with endpoint `chat.postMessage`
-   - Channel: From `config.yaml` (e.g., `#support-automation`)
-   - Format: "CXI Executive Summary draft ready for review: {LINK}"
+#### If profile = weekly support / TSE update (Email)
+1. **Generate Gmail DRAFT** - Build the body from `tse-update-email-template.md`; create the draft with `mcp__google__gmail_draft_create` using subject ("CXI Team Updates"), To, and CC from `config.yaml` `weekly_support.email`. DO NOT SEND - leave it as a draft for Kevin to review and send himself.
+2. **Draft companion Slack tease** - Short tease for `#eng-support-automation` referencing the email subject with 5-6 TL;DR bullets, a "What's coming" preview line, and a reaction/reply CTA. Slack mrkdwn (single `*` bold), no LLM attribution footer; exclude Merlin per channel norm. DO NOT POST without Kevin's confirmation.
+3. **Confirm before any send/post** - per Kevin's external-write rule, both the email send and the Slack post require explicit confirmation.
 
-**Output:** Published draft URL + confirmation
+**Output:** exec biweekly -> published Doc URL; weekly support / TSE update -> Gmail draft link + companion tease text, for Kevin's review
 
 ## Success Criteria
 
@@ -269,59 +284,22 @@ No material blockers. Key dependencies:
 | Support Tooling Backend Service | **Deferred** | Deprioritized for Q1; revisit Q2 |
 ```
 
-### Profile: weekly support
+### Profile: weekly support / TSE update
 
 #### Example Input
 ```
-User: "Build the CXI weekly support"
+User: "Build the CXI weekly support"  (also: "build the TSE update", "build CXI Team Updates")
 ```
 
 #### Expected Output
-1. Google Doc created with title "CXI Weekly Support Update - [date]"
-2. Contains:
-   - What's New - practitioner-facing changes from this week; what's different in their workflow
-   - How to Try It - simple step-by-step instructions with links; a TSE should be able to follow this without prior context
-   - Known Limitations - what doesn't work yet, what to expect, workarounds
-   - Questions / Feedback - where to ask questions and how to give feedback
-3. Same formatting rules as exec biweekly (no emojis, no em dashes, bold key points, Heading 2 headers)
-4. Reviewers tagged and notified
-5. Link shared in Slack
+1. Gmail DRAFT created (not sent), subject "CXI Team Updates", To/CC from `config.yaml` `weekly_support.email`
+2. Body contains, in order: Salutation; Opening + "Bookmark go/cxi."; TL;DR; User feedback we are prioritizing; What we shipped + how to try it; Recognizing Power Users; Welcoming new users; Best Practices; Upcoming bootcamps; What's next; Getting help; closing
+3. Same formatting rules as exec biweekly (no emojis, no em dashes, bold key points), plus the "go/cxi, Page: <title>" link convention; Merlin and SupportBricks excluded from What's next
+4. Companion Slack tease drafted for `#eng-support-automation` (not posted)
+5. Nothing sent or posted without Kevin's explicit confirmation
 
 #### Sample Generated Content
-```markdown
-# CXI Weekly Support Update - March 19, 2026
-
-## What's New
-
-**Merlin DBSQL Auto-Collection is live.** When a DBSQL case is created, Merlin now automatically collects workspace diagnostics (query plans, cluster config, error logs). You no longer need to manually request these from the customer.
-
-**Support Agent evaluation UI is available for DBSQL TSEs.** You can now review and rate AI-generated suggestions (Next Best Action, case summary, similar cases) directly in the agent interface.
-
-## How to Try It
-
-**Merlin Auto-Collection:**
-1. Open any new DBSQL case in Salesforce
-2. Check the "Diagnostics" tab - Merlin-collected data appears automatically within 5 minutes of case creation
-3. If data is missing, click "Request Collection" to trigger manually
-
-**Support Agent Evaluation UI:**
-1. Go to [Support Agent link]
-2. Open a DBSQL case
-3. Review the AI-generated suggestions in the right panel
-4. Use the thumbs up/down buttons to rate each suggestion - this directly improves the model
-
-## Known Limitations
-
-- **Merlin auto-collection** currently supports DBSQL workspaces only; other product areas are planned for Q2
-- **Support Agent suggestions** may be slow on cases with 50+ comments; optimization is in progress
-- **Evaluation UI** does not yet save ratings offline - you need to be connected
-
-## Questions / Feedback
-
-- Slack: **#support-automation** - ask anything, share feedback, report issues
-- For feature requests: [Aha! Ideas Portal](https://databrickinternal.ideas.aha.io/ideas?category=7603850531562979200)
-- Direct feedback to the CXI team: kevin.baron@databricks.com
-```
+The live structure and per-section guidance are in `assets/templates/tse-update-email-template.md` (the email body) and the `reference_tse_update_format` memory (subject line, link conventions, recurring sections). Build the draft from those rather than a hardcoded sample.
 
 ## Configuration
 
@@ -351,10 +329,10 @@ profiles:
     template_id: "..."  # Google Doc template for exec biweekly
     markdown_template: "assets/templates/biweekly-template.md"
   weekly_support:
-    schedule: weekly
-    audience: "Directors, TSE Managers, Shift Leads, Tech Leads, TSEs"
-    template_id: "..."  # Google Doc template for weekly support
-    markdown_template: "assets/templates/weekly-support-template.md"
+    schedule: weekly          # Fridays
+    audience: "All Support Engineering (TSEs, Tech Leads, Shift Leads, TSE Managers, Directors; plus IM/EM and Field Eng)"
+    output_format: email      # Gmail draft, subject "CXI Team Updates"; see email: block in config.yaml
+    markdown_template: "assets/templates/tse-update-email-template.md"
 
 # Shared data sources (used by both profiles)
 data_sources:
@@ -394,11 +372,11 @@ Before using this skill, update:
 - [x] YAML frontmatter: `name`, `description`, `triggers`, `author`
 - [x] `config.yaml`: Profiles, data sources, team-specific values
 - [x] `assets/templates/biweekly-template.md`: Exec biweekly template
-- [x] `assets/templates/weekly-support-template.md`: Weekly support template
+- [x] `assets/templates/tse-update-email-template.md`: Weekly support / TSE update email template
 - [x] `references/domain-context.md`: Style guidance for both profiles
-- [ ] Create Google Doc template for weekly support and add `template_id` to config.yaml
+- [x] weekly_support is an email profile (Gmail draft); no Google Doc template_id needed
 - [ ] Test: Say "Build CXI exec biweekly" and verify exec biweekly profile triggers
-- [ ] Test: Say "Build CXI weekly support" and verify weekly support profile triggers
+- [ ] Test: Say "Build CXI weekly support" (or "build the TSE update") and verify weekly support profile triggers
 
 ## References
 - Team context and style guide: `references/domain-context.md`

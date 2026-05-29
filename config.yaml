@@ -24,14 +24,35 @@ profiles:
         - manoj@databricks.com
 
   weekly_support:
-    name: "Weekly Support"
-    schedule: weekly
-    audience: "Directors, TSE Managers, Shift Leads, Tech Leads, TSEs"
-    template_id: "1YxEC6ApaSIrSyzbFp9-8SjJZYpTiLBqWMzFgP20TP0c"
-    markdown_template: "assets/templates/weekly-support-template.md"
+    name: "Weekly TSE Update (CXI Team Updates email)"
+    schedule: weekly          # sent each Friday
+    day: Friday
+    audience: "All Support Engineering (TSEs, Tech Leads, Shift Leads, TSE Managers, Directors; plus IM/EM and Field Eng)"
+    output_format: email      # this profile sends an email draft, NOT a Google Doc
+    email:
+      subject: "CXI Team Updates"
+      to:
+        - support-internal@databricks.com
+      cc:                                      # resolved via Glean 2026-05-29
+        - hatim@databricks.com                  # Hatim Shafique
+        - vinod.marur@databricks.com            # Vinod Marur
+        - sam.shah@databricks.com               # Sam Shah
+        - sayan.sanyal@databricks.com           # Sayan Sanyal
+        - olarn.p@databricks.com                # Olarn Pornpitaksuk
+        - devyn.fisher@databricks.com           # Devyn Fisher
+        - farhad.pagdiwalla@databricks.com      # Farhad Pagdiwalla
+        - nilesh.bhide@databricks.com           # Nilesh Bhide
+        - ravi.gangumalla@databricks.com        # Ravi Gangumalla
+        - jacob.plachta@databricks.com          # Jacob Plachta
+        - huy.nguyen@databricks.com             # Huy Nguyen
+        - ted.tomlinson@databricks.com          # Ted Tomlinson
+        - akhil.aggrawal@databricks.com         # Akhil Aggrawal
+        - nandini.r@databricks.com              # Nandini N
+        - nidhin.vn@databricks.com              # Nidhin V N
+    markdown_template: "assets/templates/tse-update-email-template.md"
     style_section: "Weekly Support Update Writing Style Guidance"
-    title_format: "CXI Weekly Support Update - {date}"
-    slack_notification_channel: "#support-automation"
+    title_format: "CXI Team Updates"
+    slack_notification_channel: "#eng-support-automation"   # companion tease (single * bold, no LLM footer); exclude Merlin per channel norm
     reviewers:
       primary: kevin.baron@databricks.com
 
@@ -79,6 +100,11 @@ data_sources:
     # When building the exec biweekly, group JIRA tickets by their Epic,
     # then frame progress in terms of the corresponding Roadmap Objective.
     #
+    # NOTE: "Support Agent" (PLAT-156358) is now a program Epic. Active work
+    # lives in the 7 sub-Epics listed under support_agent_program below.
+    # When grouping tickets for "Isaac Investigation Surface", include
+    # tickets parented to any of the 7 sub-Epics.
+    #
     # 👉 UPDATE this mapping when roadmap objectives or product areas change.
     roadmap_to_epic_mapping:
       # Roadmap Objective → JIRA Epic (product area)
@@ -86,6 +112,35 @@ data_sources:
       "Governed Execution Plane": "Support Tooling MCP"
       "Isaac Investigation Surface": "Support Agent"
       "Support Tooling Backend Service": "Support Tooling Service"
+
+    # Support Agent program-Epic structure
+    # PLAT-156358 is the program-level umbrella; active execution lives in
+    # the 7 sub-Epics below. New work should be filed under the appropriate
+    # sub-Epic, not directly under PLAT-156358.
+    support_agent_program:
+      program_epic: "PLAT-156358"
+      sub_epics:
+        - key: "PLAT-160150"
+          name: "Support Agent: Skill Catalog & Migration"
+          dri: "manoj.koushik@databricks.com"
+        - key: "PLAT-160151"
+          name: "Support Agent: Skill CI & Self-Validation"
+          dri: "ajmal.yusuf@databricks.com"
+        - key: "PLAT-160152"
+          name: "Support Agent: Telemetry & Adoption Measurement"
+          dri: "jacob.plachta@databricks.com"
+        - key: "PLAT-160153"
+          name: "Support Agent: UX & Command Surface"
+          dri: "manoj.koushik@databricks.com"
+        - key: "PLAT-160154"
+          name: "Support Agent: External Integrations"
+          dri: "vikash.choudhary@databricks.com"
+        - key: "PLAT-160155"
+          name: "Support Agent: Productionization & Compliance"
+          dri: "jacob.plachta@databricks.com"
+        - key: "PLAT-160149"
+          name: "Support Agent: PR Follow-ups (rolling)"
+          dri: "manoj.koushik@databricks.com"
 
   # Slack Configuration
   slack:
