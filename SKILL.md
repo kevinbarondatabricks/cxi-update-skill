@@ -115,6 +115,13 @@ These rules apply to ALL generated content in the Google Doc:
 ### Phase 1: Context Aggregation
 **Goal:** Gather raw updates from all sources
 
+> **weekly support / TSE update - PRIMARY SOURCE (most important).** This profile runs on **Day 10, after the Sprint Review**. Its single most important source is the Gemini Notes **TRANSCRIPTS** (the Transcript section of the doc, NOT the Summary/Notes/Details section, and NOT the Gmail "notes of CXI" summary emails) of the sprint's ceremonies:
+> - **CXI Sprint Review** (Day 10, today)
+> - the **4 CXI Standups** of the sprint (Day 3 Wed, Day 5 Fri, Day 7 Tue, Day 9 Thu)
+> - **CXI Sprint Planning** (Day 1, the Monday prior)
+>
+> For each: find the calendar event (`calendar_search` / `calendar_event_list`), open its attached "Notes by Gemini" doc, and read the **Transcript** via `docs_document_export_as_markdown`. These transcripts are the narrative; the active-sprint JIRA **Done** list (JIRA step below) is the spine - the transcripts explain the story around each Done issue. Delegate transcript reading to sub-agents (one per ceremony, in parallel) so the raw transcripts do not bloat context; each sub-agent returns only TSE-relevant synthesis (what shipped and the "so what", recognition, feedback being prioritized, what's next, behavior changes like async usage). Do NOT shortcut this with the Gemini summary; the summary is lossy and has missed shipped items before.
+
 1. **Meeting Notes (Calendar)**
    - Use: `mcp__google__calendar_event_list` tool
    - Query: Events from last 14 days matching configured keywords
@@ -133,6 +140,7 @@ These rules apply to ALL generated content in the Google Doc:
    - Query: `project = PLAT AND component = 'Support Platform' AND (status IN ("To Do","In Progress","In Review") OR updated >= -14d)`
    - Board: [Support Platform (board 6475)](https://databricks.atlassian.net/jira/software/c/projects/PLAT/boards/6475)
    - Prioritize: High-priority items, blockers
+   - **weekly support / TSE update - systematic Done harvest (REQUIRED).** Harvest EVERYTHING marked Done in the active sprint: `project = PLAT AND component = 'Support Platform' AND status = Done AND sprint IN openSprints() ORDER BY updated DESC`. **Page through ALL results** (follow `nextPageToken`; do not stop at page 1). This complete Done list is the spine of "What We Shipped" - every shipped, practitioner-relevant item must be considered. Map each Done issue to its workstream; drop pure-internal items (auth hardening, refactors, logging) from the TSE-facing cut. The ceremony transcripts (primary source above) supply the narrative and "so what" for each Done issue.
 
 3. **Slack Updates**
    - Use: `mcp__slack__slack_read_api_call` with endpoint `search.messages`
@@ -156,11 +164,12 @@ These rules apply to ALL generated content in the Google Doc:
 
 #### If profile = weekly support / TSE update:
 1. **Apply Template:** `assets/templates/tse-update-email-template.md`
-2. **Medium:** Email (Gmail draft), subject "CXI Team Updates"; To/CC from `config.yaml` `weekly_support.email`. Plus a companion Slack tease in `#eng-support-automation`.
+2. **Medium:** Render the draft INLINE in the CLI first for iteration; only after Kevin approves, produce a formatted (HTML) Gmail draft (subject "CXI Team Updates"; To/CC from `config.yaml` `weekly_support.email`) plus a companion Slack tease in `#eng-support-automation`. See Phase 3.
 3. **Sections (5/9 scaffolding around the 7-point spine):** Salutation; Opening + "Bookmark go/cxi."; TL;DR; User feedback we are prioritizing (Aha, Enablement: Champions/Workshops, Support Agent feedback); What we shipped + how to try it; Recognizing Power Users (Reviewers, Champions, Demo'ers; fold in hackathon recognition when relevant); Welcoming new users (IM/EM, Field Eng); Best Practices (go/cxi Page: links); Upcoming bootcamps; What's next; Getting help; closing
 4. **Style:** See `references/domain-context.md` - "Weekly Support Update Writing Style Guidance"; plus the conventions in the `reference_tse_update_format` memory (subject line, "go/cxi, Page: <title>" link style)
 5. **Lens:** What changed in workflows, how to use it, where to ask questions
 6. **Data filtering:** From the same Phase 1 data, extract only items with a practitioner-facing impact - skip internal architecture changes, roadmap strategy, or leadership asks. Exclude Merlin and SupportBricks from "What's next"
+7. **Sourcing:** Build "What we shipped" from the COMPLETE active-sprint Done list (Phase 1 JIRA harvest), using the ceremony **transcripts** as the narrative and "so what" for each item. Recognition, feedback being prioritized, and what's next come primarily from the transcripts. Do not rely on the Gemini summary.
 
 **Shared best practices (both profiles):**
 - Follow Output Formatting Rules (see above)
@@ -175,7 +184,7 @@ These rules apply to ALL generated content in the Google Doc:
   1. Copy pre-formatted template: `mcp__google__drive_file_copy` (use `template_id` from the active profile in config.yaml)
   2. Replace content: `mcp__google__docs_document_batch_update` with `replaceAllText` requests
   3. IMPORTANT: Use plain text only - NO HTML tags (they render as literal text)
-- **weekly support / TSE update -> Email (Gmail DRAFT):** Build the body from `tse-update-email-template.md`, then create a Gmail draft with `mcp__google__gmail_draft_create` using subject, To, and CC from `config.yaml` `weekly_support.email`. Do NOT send; leave it as a draft for Kevin to review and send. Then draft the companion Slack tease for `#eng-support-automation` (single `*` bold, no LLM footer).
+- **weekly support / TSE update -> inline first, then HTML email:** Render the draft inline in the CLI (markdown) for iteration. Only after Kevin approves, create a Gmail draft as **formatted HTML** (via the `raw` MIME parameter; NOT plain text) using subject, To, and CC from `config.yaml` `weekly_support.email`. Do NOT send. Then draft the companion Slack tease for `#eng-support-automation` (single `*` bold, no LLM footer).
 
 **Output:** Structured draft with all sections populated
 
@@ -194,12 +203,18 @@ These rules apply to ALL generated content in the Google Doc:
 2. **Tag Reviewers** - Primary: kevin.baron@databricks.com; Secondary: samira.emmerson@databricks.com (from `config.yaml`)
 3. **Send Notification** - Post to Slack `chat.postMessage` to the profile's `slack_notification_channel`; Format: "{profile_name} draft ready for review: {LINK}"
 
-#### If profile = weekly support / TSE update (Email)
-1. **Generate Gmail DRAFT** - Build the body from `tse-update-email-template.md`; create the draft with `mcp__google__gmail_draft_create` using subject ("CXI Team Updates"), To, and CC from `config.yaml` `weekly_support.email`. DO NOT SEND - leave it as a draft for Kevin to review and send himself.
-2. **Draft companion Slack tease** - Short tease for `#eng-support-automation` referencing the email subject with 5-6 TL;DR bullets, a "What's coming" preview line, and a reaction/reply CTA. Slack mrkdwn (single `*` bold), no LLM attribution footer; exclude Merlin per channel norm. DO NOT POST without Kevin's confirmation.
-3. **Confirm before any send/post** - per Kevin's external-write rule, both the email send and the Slack post require explicit confirmation.
+#### If profile = weekly support / TSE update
+1. **Render the draft INLINE in the CLI first.** Output the full email body as markdown in the conversation, built from the ceremony transcripts + complete Done list. Do NOT create a Gmail draft yet. Iterate inline with Kevin until he says it is ready. Mark any section lacking a verified source as `CONFIRM MANUALLY`.
+2. **Only after Kevin approves the content:** create the email as a Gmail draft with `mcp__google__gmail_draft_create`, subject ("CXI Team Updates"), To and CC from `config.yaml` `weekly_support.email`, rendered as **formatted HTML** via the `raw` MIME parameter (NOT plain text). DO NOT SEND - leave it as a draft for Kevin to send himself.
+3. **Companion Slack tease** - draft for `#eng-support-automation` (single `*` bold, no LLM footer; exclude Merlin per channel norm). Post only after Kevin's explicit confirmation.
+4. **Refresh the go/cxi Best Practices page (after the email is finalized).** Update the *Support Agent Best Practices* Confluence page (`page_id` 6209308108, space UN; see `config.yaml` `links.best_practices_page_id`) with any **durable, practitioner-facing best practices** surfaced in this update - new usage guidance, behavior changes, command/tool changes - mapped to its existing sections (**Overall**, **Writing Skills**, **Using Skills**). Draw from the same inputs as the email PLUS any Confluence pages created that week and Kevin's `#eng-support-automation` announcements. Rules:
+   - Preserve all existing content; only add or revise.
+   - Replace now-stale guidance and keep phrasing **version-resilient** (e.g., "use the latest Opus and how to find it," not a pinned model version).
+   - Exclude time-bound announcements and in-flight / experimental links (e.g., Learn Mode onboarding) until they conclude.
+   - Fetch raw storage (`get_confluence_page_content` with `is_full=true`, `write_to_file=true`), edit, and write back with `mcp__confluence__update_confluence_page` (increment `version_number`, `include_footer=false`).
+   - **External write - propose the changes and get Kevin's explicit confirmation before applying.** If Confluence 403s on scopes, hand Kevin the storage-format section to paste.
 
-**Output:** exec biweekly -> published Doc URL; weekly support / TSE update -> Gmail draft link + companion tease text, for Kevin's review
+**Output:** exec biweekly -> published Doc URL; weekly support / TSE update -> inline CLI draft for iteration, then (on approval) a formatted-HTML Gmail draft + companion tease text, then (on approval) the refreshed go/cxi Best Practices page
 
 ## Success Criteria
 
@@ -292,11 +307,12 @@ User: "Build the CXI weekly support"  (also: "build the TSE update", "build CXI 
 ```
 
 #### Expected Output
-1. Gmail DRAFT created (not sent), subject "CXI Team Updates", To/CC from `config.yaml` `weekly_support.email`
+1. Draft rendered INLINE in the CLI for iteration; a formatted-HTML Gmail draft (subject "CXI Team Updates", To/CC from `config.yaml` `weekly_support.email`) is created only AFTER Kevin approves the content; never auto-sent
 2. Body contains, in order: Salutation; Opening + "Bookmark go/cxi."; TL;DR; User feedback we are prioritizing; What we shipped + how to try it; Recognizing Power Users; Welcoming new users; Best Practices; Upcoming bootcamps; What's next; Getting help; closing
 3. Same formatting rules as exec biweekly (no emojis, no em dashes, bold key points), plus the "go/cxi, Page: <title>" link convention; Merlin and SupportBricks excluded from What's next
 4. Companion Slack tease drafted for `#eng-support-automation` (not posted)
 5. Nothing sent or posted without Kevin's explicit confirmation
+6. After the email is finalized, the go/cxi **Support Agent Best Practices** page (6209308108) is refreshed with durable practitioner best practices from the update (version-resilient phrasing; in-flight/experimental items held); proposed first, applied only on Kevin's confirmation
 
 #### Sample Generated Content
 The live structure and per-section guidance are in `assets/templates/tse-update-email-template.md` (the email body) and the `reference_tse_update_format` memory (subject line, link conventions, recurring sections). Build the draft from those rather than a hardcoded sample.

@@ -25,10 +25,15 @@ profiles:
 
   weekly_support:
     name: "Weekly TSE Update (CXI Team Updates email)"
-    schedule: weekly          # sent each Friday
+    schedule: weekly          # Day 10 Friday, run AFTER the Sprint Review
     day: Friday
     audience: "All Support Engineering (TSEs, Tech Leads, Shift Leads, TSE Managers, Directors; plus IM/EM and Field Eng)"
-    output_format: email      # this profile sends an email draft, NOT a Google Doc
+    output_format: email      # final medium = formatted-HTML Gmail draft; but RENDER INLINE in the CLI first to iterate; create the draft only after Kevin approves; never auto-send
+    # PRIMARY SOURCE (most important): Gemini Notes TRANSCRIPTS (not summaries) of this sprint's ceremonies -
+    # CXI Sprint Review (Day 10), the 4 CXI Standups (Wed/Fri/Tue/Thu), and CXI Sprint Planning (Day 1 Mon).
+    # SPINE of "What We Shipped": every issue Done in the active sprint
+    #   (project = PLAT AND component = 'Support Platform' AND status = Done AND sprint IN openSprints()), paged fully.
+    primary_sources: ["CXI Sprint Review transcript", "4 CXI Standup transcripts", "CXI Sprint Planning transcript", "active-sprint Done list"]
     email:
       subject: "CXI Team Updates"
       to:
@@ -94,53 +99,96 @@ data_sources:
       - "High"
       - "Medium"
 
-    # Roadmap-to-JIRA Mapping
-    # Each Epic on the Support Platform board represents a product area.
-    # Each Roadmap Objective maps to one of these product areas.
-    # When building the exec biweekly, group JIRA tickets by their Epic,
-    # then frame progress in terms of the corresponding Roadmap Objective.
+    # Roadmap-to-JIRA Mapping (Q2 - 14 objectives -> 13 workstream Epics)
+    # Updated 2026-05-30 for the Q2 CXI Structure: one Epic per workstream,
+    # assigned to the first DRI listed in the "Q2 CXI Structure and Committed Work" doc tab.
+    # Each Q2 roadmap objective maps to one or more workstream Epics; objectives 1 and 4
+    # span multiple workstreams, so all relevant Epics are listed.
+    # Objective 13 (Sherpa APIs) is tracked in SUPPORTDS, not on the PLAT board.
+    # When building the exec biweekly, group JIRA tickets by their workstream Epic,
+    # then frame progress in terms of the corresponding roadmap objective.
     #
-    # NOTE: "Support Agent" (PLAT-156358) is now a program Epic. Active work
-    # lives in the 7 sub-Epics listed under support_agent_program below.
-    # When grouping tickets for "Isaac Investigation Surface", include
-    # tickets parented to any of the 7 sub-Epics.
-    #
-    # 👉 UPDATE this mapping when roadmap objectives or product areas change.
+    # 👉 UPDATE this mapping when the Q2 roadmap or the workstream Epics change.
     roadmap_to_epic_mapping:
-      # Roadmap Objective → JIRA Epic (product area)
-      "Automatic Diagnostic Collection (DBSQL)": "Merlin"
-      "Governed Execution Plane": "Support Tooling MCP"
-      "Isaac Investigation Surface": "Support Agent"
-      "Support Tooling Backend Service": "Support Tooling Service"
+      # P0-A: Prove the Path to Automation
+      "1. Automated Investigation and Resolution Readiness in Support Agent":
+        - "PLAT-162746"   # Remote Data Access
+        - "PLAT-161917"   # Remote Support Agent
+        - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
+      "2. Support Agent Adoption / Default Debug Surface":
+        - "PLAT-160153"   # Support Agent Workflows
+        - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
+      "3. CXI MCP Tool Expansion":
+        - "PLAT-156366"   # Support Agent MCP Server
+      "4. Quality Layer for Automation Readiness":
+        - "PLAT-160151"   # Skills Quality & Creation, pre-merge
+        - "PLAT-162745"   # Infra-level checks, pre-merge
+        - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
+      # P0-B: Merlin as Intake, Diagnostics, Taxonomy, Deflection
+      "5. Merlin v2 GA / Retire v1": ["PLAT-119961"]                          # Merlin
+      "6. Merlin Backend Data Sources and Customer-Facing Taxonomy": ["PLAT-119961"]
+      "7. Additional Merlin Diagnostics Collection": ["PLAT-119961"]
+      "8. Launch Merlin for Azure": ["PLAT-119961"]
+      # P1: Extend Support Agent into Enablement and Operations
+      "9. Support Agent Learn / L&E Mode": ["PLAT-162744"]                    # Support Agent Learn Mode
+      "10. Support Agent Workflow Mode": ["PLAT-160153"]                      # Support Agent Workflows
+      "11. Support Operations Command Center v1": ["PLAT-162747"]             # Support Ops Centre
+      # P2: Build SupportBricks as the TSE Delighter
+      "12. Support Tooling Backend Service for SupportBricks": ["PLAT-152062"] # Support Tooling Service
+      "13. Sherpa APIs for SupportBricks": ["SUPPORTDS"]                       # tracked in SUPPORTDS, not PLAT
+      "14. SupportBricks as the TSE Work Surface": ["PLAT-157199"]            # SupportBricks
 
-    # Support Agent program-Epic structure
-    # PLAT-156358 is the program-level umbrella; active execution lives in
-    # the 7 sub-Epics below. New work should be filed under the appropriate
-    # sub-Epic, not directly under PLAT-156358.
-    support_agent_program:
-      program_epic: "PLAT-156358"
-      sub_epics:
-        - key: "PLAT-160150"
-          name: "Support Agent: Skill Catalog & Migration"
-          dri: "manoj.koushik@databricks.com"
-        - key: "PLAT-160151"
-          name: "Support Agent: Skill CI & Self-Validation"
-          dri: "ajmal.yusuf@databricks.com"
-        - key: "PLAT-160152"
-          name: "Support Agent: Telemetry & Adoption Measurement"
-          dri: "jacob.plachta@databricks.com"
-        - key: "PLAT-160153"
-          name: "Support Agent: UX & Command Surface"
-          dri: "manoj.koushik@databricks.com"
-        - key: "PLAT-160154"
-          name: "Support Agent: External Integrations"
-          dri: "vikash.choudhary@databricks.com"
-        - key: "PLAT-160155"
-          name: "Support Agent: Productionization & Compliance"
-          dri: "jacob.plachta@databricks.com"
-        - key: "PLAT-160149"
-          name: "Support Agent: PR Follow-ups (rolling)"
-          dri: "manoj.koushik@databricks.com"
+    # The 13 Q2 workstream Epics (one per workstream; DRI = first listed in the Q2 doc).
+    # Replaces the retired Support Agent program-Epic structure (PLAT-156358 + old sub-Epics).
+    # New work should be filed under the appropriate workstream Epic below.
+    workstream_epics:
+      - key: "PLAT-156366"
+        name: "Support Agent MCP Server"
+        dri: "vikash.choudhary@databricks.com"
+      - key: "PLAT-152062"
+        name: "Support Tooling Service"
+        dri: "jacob.plachta@databricks.com"
+      - key: "PLAT-160151"
+        name: "Skills Quality & Creation, pre-merge"
+        dri: "abizer.adenwala@databricks.com"
+      - key: "PLAT-160152"
+        name: "Skills Quality post-merge + eval + SA perf/adoption"
+        dri: "sayan.sanyal@databricks.com"
+      - key: "PLAT-162745"
+        name: "Infra-level checks, pre-merge"
+        dri: "manoj.koushik@databricks.com"
+      - key: "PLAT-162746"
+        name: "Remote Data Access"
+        dri: "huy.nguyen@databricks.com"
+      - key: "PLAT-161917"
+        name: "Remote Support Agent"
+        dri: "huy.nguyen@databricks.com"
+      - key: "PLAT-119961"
+        name: "Merlin"
+        dri: "scott.oseychik@databricks.com"
+      - key: "PLAT-162744"
+        name: "Support Agent Learn Mode"
+        dri: "manoj.koushik@databricks.com"
+      - key: "PLAT-160153"
+        name: "Support Agent Workflows"
+        dri: "manoj.koushik@databricks.com"
+      - key: "PLAT-162747"
+        name: "Support Ops Centre"
+        dri: "max.ramsay@databricks.com"
+      - key: "SUPPORTDS"
+        name: "Sherpa APIs for SupportBricks (tracked in SUPPORTDS)"
+        dri: "sayan.sanyal@databricks.com"
+      - key: "PLAT-157199"
+        name: "SupportBricks"
+        dri: "max.ramsay@databricks.com"
+
+    # Standing Epics outside the 13 workstreams (KEPT, not retired):
+    #   PLAT-156358 Support Agent (generic) - home for generic Support Agent work that is NOT
+    #     Workflow Mode, Learn Mode, or CI. Not a workstream; do not fold into the 13.
+    #   PLAT-157449 Aha! Ideas (Kevin) - cross-cutting holding Epic for CXI-owned, non-product items.
+    # Pending Batch B retirement (active + Done children already re-parented):
+    #   PLAT-160155, PLAT-160150, PLAT-160154, PLAT-160149, PLAT-145096, PLAT-146971,
+    #   PLAT-149983, PLAT-162527, plus legacy (Doc Generation, Diagnostics, BotFather family).
 
   # Slack Configuration
   slack:
@@ -240,6 +288,8 @@ advanced:
 # 👉 UPDATE with your team's actual links
 links:
   go_link: "go/cxi"  # Main team update link
+  best_practices_page_id: "6209308108"   # Confluence: Support Agent Best Practices (space UN); refreshed by the weekly_support profile after each TSE update
+  best_practices_page: "go/cxi, Page: Support Agent Best Practices"
   faq_link: "go/cxi"   # FAQ link
   dashboard_link: "https://dashboard.example.com/abac"  # Metrics dashboard
   roadmap_link: "https://databricks.atlassian.net/wiki/spaces/UN/embed/6081610365?atl_f=PAGETREE"      # Roadmap link
