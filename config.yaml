@@ -116,7 +116,7 @@ data_sources:
         - "PLAT-161917"   # Remote Support Agent
         - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
       "2. Support Agent Adoption / Default Debug Surface":
-        - "PLAT-160153"   # Support Agent Workflows
+        - "PLAT-160153"   # Support Agent Workflow Mode
         - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
       "3. CXI MCP Tool Expansion":
         - "PLAT-156366"   # Support Agent MCP Server
@@ -131,7 +131,7 @@ data_sources:
       "8. Launch Merlin for Azure": ["PLAT-119961"]
       # P1: Extend Support Agent into Enablement and Operations
       "9. Support Agent Learn / L&E Mode": ["PLAT-162744"]                    # Support Agent Learn Mode
-      "10. Support Agent Workflow Mode": ["PLAT-160153"]                      # Support Agent Workflows
+      "10. Support Agent Workflow Mode": ["PLAT-160153"]                      # Support Agent Workflow Mode
       "11. Support Operations Command Center v1": ["PLAT-162747"]             # Support Ops Centre
       # P2: Build SupportBricks as the TSE Delighter
       "12. Support Tooling Backend Service for SupportBricks": ["PLAT-152062"] # Support Tooling Service
@@ -170,7 +170,7 @@ data_sources:
         name: "Support Agent Learn Mode"
         dri: "manoj.koushik@databricks.com"
       - key: "PLAT-160153"
-        name: "Support Agent Workflows"
+        name: "Support Agent Workflow Mode"
         dri: "manoj.koushik@databricks.com"
       - key: "PLAT-162747"
         name: "Support Ops Centre"
