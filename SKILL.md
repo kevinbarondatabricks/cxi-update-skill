@@ -168,17 +168,19 @@ These rules apply to ALL generated content in the Google Doc:
 2. **Sections:** TL;DR, What Shipped, What this unlocks, Impact Signal, Risks / Gaps, Asks, Highlights, What's Next, Roadmap
 3. **Style:** See `references/domain-context.md` - "Executive Summary Writing Style Guidance"
 4. **Lens:** Outcomes, trends, strategic progress, cross-functional asks
+5. **Altitude - NO JIRA in exec updates (HARD RULE):** Never include JIRA issue keys (e.g. PLAT-XXXXX), issue counts, or ticket-level granularity anywhere in the output. That is too granular for this audience (VP / SVP / COO). Use JIRA only as an internal source while gathering; in the output, speak in outcomes and impact and reference work by capability or workstream, not by issue. This applies to both exec profiles (exec_biweekly and exec_biweekly_v2).
 
 #### If profile = exec biweekly v2 (EXPERIMENTAL - swimlane / Q2 structure):
 > Additive sibling to exec biweekly; reuses Phases 0, 0.5, 1 verbatim. Only this structure differs. Do NOT alter the exec biweekly branch.
 1. **Apply Template:** `assets/templates/biweekly-v2-template.md`
 2. **Sections (exactly three):**
-   - **What We Landed (by Swimlane)** - group the active-sprint Done harvest (Phase 1 JIRA) by the five swimlanes in `config.yaml` `profiles.exec_biweekly_v2.swimlanes`, using `swimlane_to_epic_mapping` (under `data_sources.jira`) to route each Epic's Done items to its lane. Render lanes in that order. A workstream that spans lanes (e.g. Support Tooling Service) is attributed to the lane its specific deliverable serves. Use the ceremony transcripts for narrative / "so what". Each lane ends with a **Blocked** line (where the lane is stuck, or "No blockers.").
+   - **What We Landed (by Swimlane)** - group the active-sprint Done harvest (Phase 1 JIRA) by the five swimlanes in `config.yaml` `profiles.exec_biweekly_v2.swimlanes`, using `swimlane_to_epic_mapping` (under `data_sources.jira`) to route each Epic's Done items to its lane. Render lanes in that order. A workstream that spans lanes (e.g. Support Tooling Service) is attributed to the lane its specific deliverable serves. Use the ceremony transcripts for narrative / "so what". **Report at outcome altitude with NO JIRA issue keys (too granular for leadership - see the HARD RULE in the exec biweekly branch above).** **Fold the forward-look into each lane:** end each lane's narrative with a brief "Looking ahead: ..." sentence covering what is next for that lane. The forward view lives inside the lanes; there is NO separate "What's Next" section. Each lane then ends with a **Blocked** line (where the lane is stuck, or "No blockers.").
    - **Q2 KPI Metrics That Moved** - the four Q2 P0 KPIs (rows are pre-filled in the template from the pre-read; KPI names, baselines, and end-of-Q2 targets are static). Fill This Period + Movement ONLY from the Data-Science-confirmed source per KPI. **Until DS confirms the tracking source (see `kpi_source_status` in config; DM to Sayan 2026-06-03), leave This Period + Movement as `CONFIRM MANUALLY - source pending DS`.** Do NOT fabricate KPI movement.
    - **Where We Need Help from Senior Leadership** - filter asks to what only **Hatim, Vinod, or Sam** can action. This is NOT a general blocker list - lane-level blockers already live in Section 1. Each ask: which leader, the ask, the impact, a by-when. If none, "No asks this period."
 3. **Style:** See `references/domain-context.md` - "Executive Summary Writing Style Guidance"
-4. **Lens:** Outcomes by swimlane, committed-KPI movement, senior-leader unblocks
+4. **Lens:** Outcomes by swimlane (with a forward-look folded into each lane), committed-KPI movement, senior-leader unblocks
 5. **No-hallucination:** any swimlane with no verifiable landed work says so; the KPI cells stay `CONFIRM MANUALLY` until sourced.
+6. **Altitude:** the NO-JIRA hard rule from the exec biweekly branch applies here too - no issue keys or ticket-level detail in the output.
 
 #### If profile = weekly support / TSE update:
 1. **Apply Template:** `assets/templates/tse-update-email-template.md`
