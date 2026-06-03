@@ -50,8 +50,13 @@
      JIRA Done harvest (Phase 1) mapped to each lane's workstream Epics, with the
      ceremony transcripts supplying the narrative and "so what". A workstream that
      spans lanes (e.g. Support Tooling Service) reports under the lane the specific
-     deliverable serves. Within each lane, end with a Blocked line stating where the
-     lane is stuck (or "No blockers."). If a lane had no landed work this period, say so. -->
+     deliverable serves.
+     ALTITUDE: outcome-level only - NO JIRA issue keys (e.g. PLAT-XXXXX) or ticket-level
+     detail anywhere (too granular for VP/SVP/COO). Reference work by capability/workstream.
+     FORWARD-LOOK: fold the forward view INTO each lane - end each lane's LANDED narrative
+     with a brief "Looking ahead: ..." sentence. There is NO separate What's Next section.
+     Then end each lane with a Blocked line (where the lane is stuck, or "No blockers.").
+     If a lane had no landed work this period, say so. -->
 
 ### Automation
 {LANE_AUTOMATION_LANDED}
@@ -111,7 +116,8 @@
 
 Before sharing, verify:
 - [ ] All `{PLACEHOLDERS}` replaced (or explicitly marked `CONFIRM MANUALLY`)
-- [ ] Section 1 covers all five swimlanes; each has a Landed block and a Blocked line
+- [ ] Section 1 covers all five swimlanes; each has a Landed block, a folded "Looking ahead" forward-look, and a Blocked line
+- [ ] No JIRA issue keys or ticket-level detail anywhere (exec altitude)
 - [ ] Section 2 KPI rows reflect real movement from the DS-confirmed source (not stubbed)
 - [ ] Section 3 asks are senior-leader-actionable only (Hatim / Vinod / Sam), each with who/what/when
 - [ ] No emojis; no em dashes; key points bolded
