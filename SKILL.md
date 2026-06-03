@@ -2,15 +2,19 @@
 name: cxi-update
 description: >
   IMMEDIATELY activate when user mentions CXI updates, summaries, or newsletters for any audience.
-  This skill has TWO profiles - always determine which one before proceeding:
+  This skill has THREE profiles - always determine which one before proceeding:
   (1) exec biweekly - triggered by "exec biweekly", "leadership update", or "exec summary"
   (2) weekly support / TSE update - the weekly Friday CXI Team Updates email - triggered by "weekly support", "support team update", "weekly summary", "TSE summary", "TSE update", or "CXI Team Updates"
+  (3) exec biweekly v2 (EXPERIMENTAL swimlane / Q2 structure; additive sibling to exec biweekly, may be reverted) - triggered ONLY by "exec biweekly v2", "Q2 structure", or "swim lane structure". The plain "exec biweekly" triggers still route to profile (1).
   If invoked via /cxi-exec-summary-skill or ambiguously, ASK the user which profile before proceeding.
   Automatically aggregates context from Google Docs, JIRA, meetings, Gmail, and Slack.
 triggers:
   - CXI exec biweekly
   - CXI leadership update
   - CXI exec summary
+  - CXI exec biweekly v2
+  - CXI Q2 structure
+  - CXI swim lane structure
   - CXI weekly support
   - CXI support team update
   - CXI weekly summary
@@ -18,7 +22,7 @@ triggers:
   - CXI TSE update
   - CXI Team Updates
   - CXI update
-version: 1.3.0
+version: 1.4.0
 author: Kevin Baron-Quijano <kevin.baron@databricks.com>
 ---
 
@@ -48,6 +52,8 @@ Generates audience-appropriate updates by aggregating from the same core sources
 
 **Output:** Formatted Google Doc ready for review.
 
+> **Third profile (EXPERIMENTAL):** `exec_biweekly_v2` is an additive pilot of a different exec structure (swimlane view + Q2 KPI movement + senior-leader asks). It reuses the exec biweekly audience, medium (Google Doc), and extraction phases; only the output structure differs. It does NOT replace `exec_biweekly` - both coexist, and v2 may be reverted. Triggered only by "exec biweekly v2" / "Q2 structure" / "swim lane structure". See the v2 branches in Phase 2 and Phase 3.
+
 ## Profile Selection (MANDATORY - always resolve before Phase 0)
 
 **NEVER default to a profile. Always resolve explicitly.**
@@ -55,6 +61,7 @@ Generates audience-appropriate updates by aggregating from the same core sources
 | User says | Profile |
 |---|---|
 | "exec biweekly", "leadership update", "exec summary", "biweekly" | `exec_biweekly` |
+| "exec biweekly v2", "Q2 structure", "swim lane structure" | `exec_biweekly_v2` (EXPERIMENTAL) |
 | "weekly support", "support team update", "weekly summary", "TSE summary", "TSE update", "CXI Team Updates" | `weekly_support` |
 | `/cxi-exec-summary-skill` (bare invocation) | **ASK** |
 | "CXI update" (ambiguous) | **ASK** |
@@ -162,6 +169,17 @@ These rules apply to ALL generated content in the Google Doc:
 3. **Style:** See `references/domain-context.md` - "Executive Summary Writing Style Guidance"
 4. **Lens:** Outcomes, trends, strategic progress, cross-functional asks
 
+#### If profile = exec biweekly v2 (EXPERIMENTAL - swimlane / Q2 structure):
+> Additive sibling to exec biweekly; reuses Phases 0, 0.5, 1 verbatim. Only this structure differs. Do NOT alter the exec biweekly branch.
+1. **Apply Template:** `assets/templates/biweekly-v2-template.md`
+2. **Sections (exactly three):**
+   - **What We Landed (by Swimlane)** - group the active-sprint Done harvest (Phase 1 JIRA) by the five swimlanes in `config.yaml` `profiles.exec_biweekly_v2.swimlanes`, using `swimlane_to_epic_mapping` (under `data_sources.jira`) to route each Epic's Done items to its lane. Render lanes in that order. A workstream that spans lanes (e.g. Support Tooling Service) is attributed to the lane its specific deliverable serves. Use the ceremony transcripts for narrative / "so what". Each lane ends with a **Blocked** line (where the lane is stuck, or "No blockers.").
+   - **Q2 KPI Metrics That Moved** - the four Q2 P0 KPIs (rows are pre-filled in the template from the pre-read; KPI names, baselines, and end-of-Q2 targets are static). Fill This Period + Movement ONLY from the Data-Science-confirmed source per KPI. **Until DS confirms the tracking source (see `kpi_source_status` in config; DM to Sayan 2026-06-03), leave This Period + Movement as `CONFIRM MANUALLY - source pending DS`.** Do NOT fabricate KPI movement.
+   - **Where We Need Help from Senior Leadership** - filter asks to what only **Hatim, Vinod, or Sam** can action. This is NOT a general blocker list - lane-level blockers already live in Section 1. Each ask: which leader, the ask, the impact, a by-when. If none, "No asks this period."
+3. **Style:** See `references/domain-context.md` - "Executive Summary Writing Style Guidance"
+4. **Lens:** Outcomes by swimlane, committed-KPI movement, senior-leader unblocks
+5. **No-hallucination:** any swimlane with no verifiable landed work says so; the KPI cells stay `CONFIRM MANUALLY` until sourced.
+
 #### If profile = weekly support / TSE update:
 1. **Apply Template:** `assets/templates/tse-update-email-template.md`
 2. **Medium:** Render the draft INLINE in the CLI first for iteration; only after Kevin approves, produce a formatted (HTML) Gmail draft (subject "CXI Team Updates"; To/CC from `config.yaml` `weekly_support.email`) plus a companion Slack tease in `#eng-support-automation`. See Phase 3.
@@ -184,6 +202,7 @@ These rules apply to ALL generated content in the Google Doc:
   1. Copy pre-formatted template: `mcp__google__drive_file_copy` (use `template_id` from the active profile in config.yaml)
   2. Replace content: `mcp__google__docs_document_batch_update` with `replaceAllText` requests
   3. IMPORTANT: Use plain text only - NO HTML tags (they render as literal text)
+- **exec biweekly v2 (EXPERIMENTAL) -> Google Doc:** Same approach as exec biweekly, but copy the v2 `template_id` and replace the v2 token set (swimlane Landed/Blocked, KPI cells, senior asks). Original exec biweekly template untouched.
 - **weekly support / TSE update -> inline first, then HTML email:** Render the draft inline in the CLI (markdown) for iteration. Only after Kevin approves, create a Gmail draft as **formatted HTML** (via the `raw` MIME parameter; NOT plain text) using subject, To, and CC from `config.yaml` `weekly_support.email`. Do NOT send. Then draft the companion Slack tease for `#eng-support-automation` (single `*` bold, no LLM footer).
 
 **Output:** Structured draft with all sections populated
@@ -202,6 +221,16 @@ These rules apply to ALL generated content in the Google Doc:
 
 2. **Tag Reviewers** - Primary: kevin.baron@databricks.com; Secondary: samira.emmerson@databricks.com (from `config.yaml`)
 3. **Send Notification** - Post to Slack `chat.postMessage` to the profile's `slack_notification_channel`; Format: "{profile_name} draft ready for review: {LINK}"
+
+#### If profile = exec biweekly v2 (EXPERIMENTAL - Google Doc)
+> Same delivery mechanism as exec biweekly, with the v2 profile's own `template_id`. Does NOT touch the exec biweekly template or Doc.
+1. **Generate Draft Using Template**
+   - Copy template: `mcp__google__drive_file_copy` with `template_id` from `profiles.exec_biweekly_v2` in config.yaml (the v2 Doc, NOT the exec biweekly Doc)
+   - Update title via `replaceAllText` using `title_format` ("CXI Q2 Executive Summary (Swimlane View) - {date}")
+   - Replace content with `replaceAllText` (NO HTML tags). Token set is in `assets/templates/biweekly-v2-template.md`: the per-swimlane `{LANE_*_LANDED}` / `{LANE_*_BLOCKED}` tokens, the KPI `{KPI*_THIS_PERIOD}` / `{KPI*_MOVEMENT}` cells, and `{SENIOR_ASKS}`
+   - **Leave the KPI This-Period / Movement cells as `CONFIRM MANUALLY - source pending DS` until Data Science confirms the tracking source** (see `kpi_source_status` in config). Do not fabricate KPI numbers.
+2. **Tag Reviewers** - Primary: kevin.baron@databricks.com; Secondary: samira.emmerson@databricks.com
+3. **Send Notification** - Post to the profile's `slack_notification_channel` (#support-automation); Format: "{profile_name} draft ready for review: {LINK}"
 
 #### If profile = weekly support / TSE update
 1. **Render the draft INLINE in the CLI first.** Output the full email body as markdown in the conversation, built from the ceremony transcripts + complete Done list. Do NOT create a Gmail draft yet. Iterate inline with Kevin until he says it is ready. Mark any section lacking a verified source as `CONFIRM MANUALLY`.

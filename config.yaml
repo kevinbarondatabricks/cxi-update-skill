@@ -23,6 +23,30 @@ profiles:
         - nilesh.bhide@databricks.com
         - manoj@databricks.com
 
+  # EXPERIMENTAL pilot profile - additive sibling to exec_biweekly; does NOT replace it.
+  # Same extraction (Phases 0, 0.5, 1) as exec_biweekly; only the OUTPUT structure differs
+  # (three sections: Landed-by-swimlane, Q2 KPIs moved, senior-leader asks). May be reverted.
+  exec_biweekly_v2:
+    name: "Biweekly Executive Summary (v2 - Swimlane / Q2 Structure)"
+    status: experimental
+    schedule: biweekly
+    audience: "VP Support, COO, SVP Eng (Hatim, Vinod, Sam, Samira)"
+    template_id: "1uTVCwCaSYT6S1sPAOUVIqOuL5MEK7EM05O6AmaPUkRg"
+    markdown_template: "assets/templates/biweekly-v2-template.md"
+    style_section: "Executive Summary Writing Style Guidance"
+    title_format: "CXI Q2 Executive Summary (Swimlane View) - {date}"
+    slack_notification_channel: "#support-automation"
+    # Section 1 groups landed work by these 5 swimlanes (Q2 CXI Structure matrix column order).
+    swimlanes: ["Automation", "Support Ops", "CI", "Merlin", "Support Bricks"]
+    structure:
+      - "Section 1: What We Landed (by Swimlane) - 5 lanes; each lane gets a Landed block + a Blocked line. Map the active-sprint Done harvest to lanes via swimlane_to_epic_mapping below."
+      - "Section 2: Q2 KPI Metrics That Moved - 4 P0 KPIs from the pre-read; tracking source per KPI is PENDING Data Science."
+      - "Section 3: Where We Need Help from Senior Leadership - asks filtered to what only Hatim, Vinod, or Sam can action (NOT a general blocker list)."
+    kpi_source_status: "PENDING Data Science - one central place, Samira ask; DM to Sayan 2026-06-03. Wire Section 2 This-Period/Movement cells when DS confirms per-KPI source/computation/refresh."
+    reviewers:
+      primary: kevin.baron@databricks.com
+      secondary: samira.emmerson@databricks.com
+
   weekly_support:
     name: "Weekly TSE Update (CXI Team Updates email)"
     schedule: weekly          # Day 10 Friday, run AFTER the Sprint Review
@@ -181,6 +205,35 @@ data_sources:
       - key: "PLAT-157199"
         name: "SupportBricks"
         dri: "max.ramsay@databricks.com"
+
+    # Swimlane -> workstream Epics (used by the exec_biweekly_v2 profile to group
+    # "What We Landed" by swimlane). Source: the Q2 CXI Structure swimlane x workstream
+    # matrix. A workstream can appear in multiple lanes (e.g. Support Tooling Service);
+    # at render time, attribute a landed deliverable to the lane it actually serves.
+    swimlane_to_epic_mapping:
+      "Automation":
+        - "PLAT-156366"   # Support Agent MCP Server
+        - "PLAT-152062"   # Support Tooling Service
+        - "PLAT-160151"   # Skills Quality & Creation, pre-merge
+        - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
+        - "PLAT-162746"   # Remote Data Access
+        - "PLAT-161917"   # Remote Support Agent
+        - "PLAT-162744"   # Support Agent Learn Mode
+        - "PLAT-160153"   # Support Agent Workflow Mode
+      "Support Ops":
+        - "PLAT-152062"   # Support Tooling Service
+        - "PLAT-162747"   # Support Ops Centre
+      "CI":
+        - "PLAT-160151"   # Skills Quality & Creation, pre-merge
+        - "PLAT-160152"   # Skills Quality post-merge + eval + SA perf/adoption
+        - "PLAT-162745"   # Infra-level checks, pre-merge
+      "Merlin":
+        - "PLAT-119961"   # Merlin
+      "Support Bricks":
+        - "PLAT-152062"   # Support Tooling Service
+        - "PLAT-161917"   # Remote Support Agent
+        - "SUPPORTDS"     # Sherpa APIs for SupportBricks (tracked in SUPPORTDS)
+        - "PLAT-157199"   # SupportBricks
 
     # Standing Epics outside the 13 workstreams (KEPT, not retired):
     #   PLAT-156358 Support Agent (generic) - home for generic Support Agent work that is NOT
